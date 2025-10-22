@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: oav_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: securepassword
+      MYSQL_DATABASE: oav_production
+      MYSQL_USER: oavuser
+      MYSQL_PASSWORD: securepassword
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/webserver/Dockerfile
+    container_name: oav_web
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      RAILS_ENV: production
+      DATABASE_HOST: db
+      DATABASE_NAME: oav_production
+      DATABASE_USER: oavuser
+      DATABASE_PASSWORD: securepassword
+    volumes:
+      - ./docker/webserver/nginx.conf:/etc/nginx/sites-enabled/default
+      - ./docker/webserver/config/rails_env.conf:/etc/nginx/main.d/rails_env.conf
+      - ./docker/webserver/setup_app.sh:/etc/my_init.d/setup_app.sh
+      - ./oav-keys-and-counting:/home/app/oav_website
+    depends_on:
+      - db
+
+  sidekiq:
+    build:
+      context: .
+      dockerfile: docker/webserver/Dockerfile
+    container_name: oav_sidekiq
+    restart: always
+    command: bundle exec sidekiq
+    environment:
+      RAILS_ENV: production
+      DATABASE_HOST: db
+      DATABASE_NAME: oav_production
+      DATABASE_USER: oavuser
+      DATABASE_PASSWORD: securepassword
+    volumes:
+      - ./oav-keys-and-counting:/home/app/oav_website
+    depends_on:
+      - db
+
+volumes:
+  db_data:
