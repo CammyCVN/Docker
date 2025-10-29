@@ -6,16 +6,24 @@ services:
       - "8001:80"
     environment:
       RAILS_ENV: production
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgres://oav:secret@db:5432/oav_production
     depends_on:
       - db
       - redis
+    restart: always
 
   sidekiq:
     build: .
     command: bundle exec sidekiq
+    environment:
+      RAILS_ENV: production
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgres://oav:secret@db:5432/oav_production
     depends_on:
       - db
       - redis
+    restart: always
 
   db:
     image: postgres:13
@@ -23,6 +31,9 @@ services:
       POSTGRES_USER: oav
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: oav_production
+    restart: always
 
   redis:
     image: redis:6
+    restart: always
+
