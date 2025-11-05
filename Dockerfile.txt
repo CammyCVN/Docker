@@ -1,13 +1,31 @@
 
 FROM ruby:3.3
-RUN apt-get update && apt-get install -y build-essential libpq-dev nodejs nginx curl && rm -rf /var/lib/apt/lists/*
+
+# Install system dependencies and Oracle MySQL client
+RUN apt-get update && apt-get install -y \
+    build-essential libpq-dev nginx curl gnupg \
+    && curl -OL https://dev.mysql.com/get/mysql-apt-config_0.8.29-1_all.deb \
+    && dpkg -i mysql-apt-config_0.8.29-1_all.deb \
+    && apt-get update && apt-get install -y \
+    mysql-client default-libmysqlclient-dev \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g yarn \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Passenger and Bundler
 RUN gem install passenger -v 6.0.18 && gem install bundler -v 2.5.3
+
 WORKDIR /app
 COPY Gemfile Gemfile.lock /app/
 COPY . /app/
+
+# Configure Bundler and install gems
 RUN bundle config set --global path 'vendor/bundle' && bundle config set --global allow-root true
 RUN bundle install --jobs 4 --retry 3
+
 EXPOSE 80
 CMD ["passenger", "start", "--port", "80", "--environment", "production"]
+
 
 
